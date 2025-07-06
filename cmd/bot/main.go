@@ -7,6 +7,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
 
+	"github.com/chigvero/TelegramBot/internal/app/commands"
 	"github.com/chigvero/TelegramBot/internal/service/product"
 )
 
@@ -29,6 +30,8 @@ func main() {
 
 	productServce := product.NewService()
 
+	commander := commands.NewCommander(bot, productServce)
+
 	for update := range updates {
 		if update.Message == nil {
 			continue
@@ -36,40 +39,11 @@ func main() {
 
 		switch update.Message.Command() {
 		case "help":
-			helpCommand(bot, update.Message)
+			commander.HelpCommand(update.Message)
 		case "list":
-			listCommand(bot, update.Message, productServce)
+			commander.ListCommand(update.Message)
 		default:
-			defaultBehavior(bot, update.Message)
+			commander.DefaultBehavior(update.Message)
 		}
 	}
-}
-
-func helpCommand(bot *tgbotapi.BotAPI, inputMessage *tgbotapi.Message) {
-	msg := tgbotapi.NewMessage(inputMessage.Chat.ID,
-		"/help - help\n"+
-			"/list - list products")
-	bot.Send(msg)
-}
-
-func defaultBehavior(bot *tgbotapi.BotAPI, inputMessage *tgbotapi.Message) {
-	log.Printf("[%s] %s", inputMessage.From.UserName, inputMessage.Text)
-
-	msg := tgbotapi.NewMessage(inputMessage.Chat.ID, "you wrote: "+inputMessage.Text)
-	//msg.ReplyToMessageID = update.Message.MessageID если нам нужно отвечать на какое то сообщение
-
-	bot.Send(msg)
-}
-
-func listCommand(bot *tgbotapi.BotAPI, inputMessage *tgbotapi.Message, productService *product.Service) {
-	outputMsgText := "Here all the products: \n\n"
-
-	products := productService.List()
-	for _, p := range products {
-		outputMsgText += p.Title
-		outputMsgText += "\n"
-	}
-
-	msg := tgbotapi.NewMessage(inputMessage.Chat.ID, outputMsgText)
-	bot.Send(msg)
 }
